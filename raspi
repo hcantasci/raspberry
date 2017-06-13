@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+# Author: Edoardo Paolo Scalafiotti <edoardo849@gmail.com>
+# Editor: Ashu <www.fiver.com/ashu_ix>
+import os
+from time import sleep
+import signal
+import sys
+import RPi.GPIO as GPIO
+import Adafruit_DHT
+ 
+ 
+pin = 18 # The pin ID, edit here to change it
+maxTMP = 50 # The maximum temperature in Celsius after which we trigger the fan
+sleepTime = 30 # The time to sleep between temp checks
+ 
+def setup():
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.setwarnings(False)
+    return()
+ 
+ 
+def getLCDtemperature():
+    _, temp = Adafruit_DHT.read_retry(11, 4)
+    print("temp is {0}".format(temp))
+    return temp
+ 
+     
+def fanON():
+    print("Fan on ...")
+    setPin(True)
+    return()
+     
+def fanOFF():
+    print("Fan off ...")
+    setPin(False)
+    return()
+     
+def getTEMP():
+    LCD_temp = float(getLCDtemperature())
+    if LCD_temp > maxTMP:
+        fanON()
+        sleep(sleepTime) # Sleep additional time in order to ensure that we stay below max temp ...
+    else:
+        fanOFF()
+    return()
+     
+def setPin(mode): # A little redundant function but useful if you want to add logging
+    GPIO.output(pin, mode)
+    return()
+     
+try:
+    setup() 
+    while True:
+        getTEMP()
+        sleep(sleepTime) # Read the temperature every x amount of seconds ...
+except KeyboardInterrupt: # trap a CTRL+C keyboard interrupt 
+    GPIO.cleanup() # resets all GPIO ports used by this script
