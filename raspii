@@ -2,16 +2,21 @@
 # Author: Edoardo Paolo Scalafiotti <edoardo849@gmail.com>
 # Editor: Ashu <www.fiver.com/ashu_ix>
 import os
+from time import time
 from time import sleep
 import signal
 import sys
 import RPi.GPIO as GPIO
 import Adafruit_DHT
+from RPLCD import CharLCD
+ 
+lcd = CharLCD(cols=16, rows=2, pin_rs=37, pin_e=35, pins_data=[33, 31, 29, 23])
  
  
 pin = 18 # The pin ID, edit here to change it
 maxTMP = 50 # The maximum temperature in Celsius after which we trigger the fan
 sleepTime = 30 # The time to sleep between temp checks
+ 
  
 def setup():
     GPIO.setmode(GPIO.BCM)
@@ -25,7 +30,14 @@ def getLCDtemperature():
     print("temp is {0}".format(temp))
     return temp
  
-     
+def showOnLCD():
+    global lcd
+    humidity, temperature = Adafruit_DHT.read_retry(11, 4)
+    lcd.cursor_pos = (0, 0)
+    lcd.write_string("Temp: %d C" % temperature)
+    lcd.cursor_pos = (1, 0)
+    lcd.write_string("Humidity: %d %%" % humidity)
+ 
 def fanON():
     print("Fan on ...")
     setPin(True)
@@ -50,9 +62,17 @@ def setPin(mode): # A little redundant function but useful if you want to add lo
     return()
      
 try:
-    setup() 
+    setup()
+    rt = time()
+    wait = False
     while True:
-        getTEMP()
-        sleep(sleepTime) # Read the temperature every x amount of seconds ...
+        showOnLCD()
+        nt = time()
+        if (rt - nt) >= sleepTime:
+            wait = False
+        if not wait:
+            getTEMP()
+            wait = True
+            rt = time()
 except KeyboardInterrupt: # trap a CTRL+C keyboard interrupt 
     GPIO.cleanup() # resets all GPIO ports used by this script
